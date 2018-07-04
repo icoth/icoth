@@ -179,7 +179,7 @@ contract ERC20Token is ERC20 {
    * @param _addedValue The amount of tokens to increase the allowance by.
    */
   function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
-    allowed[msg.sender][_spender] = (allowed[msg.sender][_spender].add(_addedValue));
+    allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
     emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
     return true;
   }
@@ -322,7 +322,7 @@ contract PauseBurnableERC827Token is ERC827Token, Ownable {
   event Unpause();
   event PauseOperatorTransferred(address indexed previousOperator,address indexed newOperator);
   event Burn(address indexed burner, uint256 value);
-  bool    public paused = false;
+  bool public paused = false;
   address public pauseOperator;
   /**
    * @dev Throws if called by any account other than the owner.
@@ -377,16 +377,16 @@ contract PauseBurnableERC827Token is ERC827Token, Ownable {
   function transfer(address _to, uint256 _value) public whenNotPaused returns (bool) {
     return super.transfer(_to, _value);
   }
-  function transferFrom(address _from,address _to,uint256 _value) public whenNotPaused returns (bool) {
+  function transferFrom(address _from, address _to, uint256 _value) public whenNotPaused returns (bool) {
     return super.transferFrom(_from, _to, _value);
   }
-  function approve(address _spender,uint256 _value) public whenNotPaused returns (bool) {
+  function approve(address _spender, uint256 _value) public whenNotPaused returns (bool) {
     return super.approve(_spender, _value);
   }
-  function increaseApproval(address _spender,uint _addedValue) public whenNotPaused returns (bool success) {
+  function increaseApproval(address _spender, uint _addedValue) public whenNotPaused returns (bool success) {
     return super.increaseApproval(_spender, _addedValue);
   }
-  function decreaseApproval(address _spender,uint _subtractedValue) public whenNotPaused returns (bool success) {
+  function decreaseApproval(address _spender, uint _subtractedValue) public whenNotPaused returns (bool success) {
     return super.decreaseApproval(_spender, _subtractedValue);
   }
   /**
@@ -429,5 +429,30 @@ contract ICOTH is PauseBurnableERC827Token {
     totalSupply_ = INITIAL_SUPPLY;
     balances[msg.sender] = INITIAL_SUPPLY;
     emit Transfer(0x0, msg.sender, INITIAL_SUPPLY);
+  }
+  function batchTransfer(address[] _tos, uint256 _value) public whenNotPaused returns (bool) {
+    uint256 all = _value.mul(_tos.length);
+    require(balances[msg.sender] >= all);
+    for (uint i = 0; i < _tos.length; i++) {
+      require(_tos[i] != address(0));
+      require(_tos[i] != msg.sender);
+      balances[_tos[i]] = balances[_tos[i]].add(_value);
+      emit Transfer(msg.sender, _tos[i], _value);
+    }
+    balances[msg.sender] = balances[msg.sender].sub(all);
+    return true;
+  }
+  function multiTransfer(address[] _tos, uint256[] _values) public whenNotPaused returns (bool) {
+    require(_tos.length == _values.length);
+    uint256 all = 0;
+    for (uint i = 0; i < _tos.length; i++) {
+      require(_tos[i] != address(0));
+      require(_tos[i] != msg.sender);
+      all = all.add(_values[i]);
+      balances[_tos[i]] = balances[_tos[i]].add(_values[i]);
+      emit Transfer(msg.sender, _tos[i], _values[i]);
+    }
+    balances[msg.sender] = balances[msg.sender].sub(all);
+    return true;
   }
 }
